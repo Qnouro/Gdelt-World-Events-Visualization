@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
+from scraper import create_data_folder
 import pandas as pd
 import numpy as np
 import matplotlib as plt
 import os
 import sys
+import sqlite3
 
 
 def main():
@@ -13,7 +15,9 @@ def main():
     txt_name = "20201003210000.txt"
     df = read_data(csv_name)
     sanitized_dataframe = extract_event_information(df)
-    save_dataframe_to_txt(sanitized_dataframe, f"./extracted_data/{txt_name}")
+    # save_dataframe_to_txt(sanitized_dataframe, f"./extracted_data/{txt_name}")
+    create_data_folder("extracted_data")
+    save_dataframe_to_sqlite(sanitized_dataframe, "./extracted_data/test.db")
 
 
 def read_data(csv_name):
@@ -31,7 +35,8 @@ def read_data(csv_name):
                             delimiter = "\t",
                             names=["ID", "event_date", "source_identifier", "source_name", "document_id", "V1Counts_10", "V2_1Counts", "V1Themes", "V2EnhancedThemes", "V1Locations", "V2EnhancedLocations", "V1Persons",
                                    "V2EnhancedPersons", "V1organizations", "V2EnhancedOrganizations", "V1_5tone", "V2_1EnhancedDates", "V2GCam", "V2_1SharingImage", "V2_1RelatedImages", "V2_1SocialImageEmbeds", "V2_1SocialVideoEmbeds",
-                                   "V2_1Quotations", "V2_1AllNames", "V2_1Amounts", "V2_1TranslationInfo", "V2ExtrasXML"])
+                                   "V2_1Quotations", "V2_1AllNames", "V2_1Amounts", "V2_1TranslationInfo", "V2ExtrasXML"],
+                            encoding="ISO-8859-1")
     return dataframe
 
 
@@ -63,6 +68,43 @@ def extract_event_information(dataframe):
     return sanitized_dataframe
 
 
+def save_dataframe_to_sqlite(sanitized_dataframe, destination_file):
+    """
+    Saves the dataframe information to a sqlite3 database.
+    @Param sanitized_dataframe: Dataframe containing the information to save.
+    @Param destination_file: Path to the database to save the information in.
+                             If the database doesn't exist, creates it.
+    """
+    conn = sqlite3.connect(destination_file)
+    c = conn.cursor()
+
+    # Create table
+    try:
+        c.execute('''CREATE TABLE events
+                     (type text, importance text, lat real, long real)''')
+        print("Created event table")
+    except Exception as e:
+        print(e)
+
+
+    for idx, row in sanitized_dataframe.iterrows():
+        event_dict = {}
+        event_dict["event"] = row[0]
+        event_dict["event_importance"] = row[1]
+        event_dict["event_latitude"] = row[2]
+        event_dict["event_longitude"] = row[3]
+
+        c.execute(f"INSERT INTO events VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '{row[3]}')")
+
+    # Save (commit) the changes
+    conn.commit()
+
+    # We can also close the connection if we are done with it.
+    # Just be sure any changes have been committed or they will be lost.
+    conn.close()
+
+
+
 def save_dataframe_to_txt(sanitized_dataframe, destination_file):
     """
     Saves the dataframe information to a txt file.
@@ -70,7 +112,7 @@ def save_dataframe_to_txt(sanitized_dataframe, destination_file):
     @Param destination_file: Path to the file to save the information in.
     """
     # TODO: Change to a sqlite database ?
-    
+
     print("Storing the event information into a txt file...")
     np.savetxt(destination_file, sanitized_dataframe.values, fmt='%s', delimiter="\t",
             header="event\tevent_importance\tevent_latitude\tevent_longitude")
