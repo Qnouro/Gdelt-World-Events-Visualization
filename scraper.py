@@ -7,22 +7,28 @@ import pathlib
 import sys
 import pickle
 import urllib
+from pathlib import Path
+
 
 def main():
     last_url = ""
     while True:
-        url = get_latest_url()
+        try:
+            url = get_latest_url()
 
-        if url != last_url:  # update detected
-            print(f"Update detected!\n")
-            last_url = url
-            current_folder = str(pathlib.Path(__file__).parent.absolute())
-            data_location = current_folder + "/data/"
+            if url != last_url:  # update detected
+                print(f"Update detected!")
+                last_url = url
+                current_folder = str(pathlib.Path(__file__).parent.absolute())
+                data_location = current_folder + "/data/"
 
-            create_data_folder(data_location)
+                create_data_folder(data_location)
 
-            download_file(url, data_location)
-            print("Extraction completed.\n")
+                download_file(url, data_location)
+                print("Extraction completed.")
+        except Exception as e:
+            print(f"Error! {e}")
+            continue
     return 0
 
 
@@ -46,7 +52,7 @@ def download_file(url, data_location):
     @Param data_location: folder to store the csv files in.
     """
     # Downloading the data (zip format)
-    print(f"Downloading {url}..\n")
+    print(f"Downloading {url}..")
     req = requests.get(url)
 
 
@@ -55,12 +61,12 @@ def download_file(url, data_location):
     with open(zipfile_location, "wb") as my_zipfile:
         my_zipfile.write(req.content)
 
-    print("Extracting zip file..\n")
+    print("Extracting zip file..")
     # Extracting the zip to get a csv file
     with zipfile.ZipFile(zipfile_location, 'r') as zip_ref:
         zip_ref.extractall(data_location)
 
-    print("Removing zip file..\n")
+    print("Removing zip file..")
     # Removing the zip file
     os.remove(zipfile_location)
 
@@ -85,6 +91,15 @@ def create_data_folder(data_location):
     """
     if not os.path.exists(data_location):
         os.mkdir(data_location)
+
+
+def get_last_csv_name(data_location):
+    """
+    Returns the name of the last csv file created in the directory.
+    @Return: String of the csv file name.
+    """
+    files = sorted(Path(data_location).iterdir(), key=os.path.getctime)
+    return str(files[-1]).split("/")[-1]
 
 
 if __name__ == "__main__":
