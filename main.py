@@ -2,6 +2,7 @@
 
 from scraper import *
 from data_extraction import *
+from time import sleep
 
 def main():
     last_url = ""
@@ -14,6 +15,7 @@ def main():
                 df = read_data(csv_name)
                 sanitized_dataframe = extract_event_information(df)
                 save_dataframe_to_txt(sanitized_dataframe, f"./extracted_data/{txt_name}")
+            sleep(60)
         except Exception as e:
             print(f"Error! {e}")
             continue
