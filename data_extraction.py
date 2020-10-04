@@ -7,6 +7,7 @@ import matplotlib as plt
 import os
 import sys
 import sqlite3
+from collections import OrderedDict
 
 
 def main():
@@ -30,7 +31,7 @@ def read_data(csv_name):
 
     data_dir = "./data/"
     csv = data_dir + csv_name
-
+    pd.set_option('display.float_format', lambda x: '%.3f' % x)  # Avoid scientific notation
     dataframe = pd.read_csv(csv,
                             delimiter = "\t",
                             names=["ID", "event_date", "source_identifier", "source_name", "document_id", "V1Counts_10", "V2_1Counts", "V1Themes", "V2EnhancedThemes", "V1Locations", "V2EnhancedLocations", "V1Persons",
@@ -52,17 +53,24 @@ def extract_event_information(dataframe):
     sanitized_dataframe = pd.DataFrame(columns=events_columns)
 
     # Removing NaN events
-    main_dataframe = dataframe["V1Counts_10"].copy()
+    main_dataframe = dataframe[["event_date", "V1Counts_10", "source_name", "document_id"]].copy()
     main_series = main_dataframe.dropna(0)
 
 
-    for idx, row in main_series.items():
-        row = row.split("#")
-        event_dict = {}
-        event_dict["event"] = row[0]
-        event_dict["event_importance"] = row[1]
-        event_dict["event_latitude"] = row[7]
-        event_dict["event_longitude"] = row[8]
+    for idx, row in main_series.iterrows():
+        event_date = row[0]
+        event_source_name = row[2]
+        event_document = row[3]
+        event_details = row[1].split("#")
+        event_dict = OrderedDict()
+        event_dict["event_date"] = event_date
+        event_dict["event_source_name"] = event_source_name
+        event_dict["event_document"] = event_document
+        event_dict["event"] = event_details[0]
+        event_dict["event_importance"] = event_details[1]
+        event_dict["event_latitude"] = event_details[7]
+        event_dict["event_longitude"] = event_details[8]
+
         sanitized_dataframe = sanitized_dataframe.append(event_dict, ignore_index=True)
 
     return sanitized_dataframe
@@ -81,26 +89,23 @@ def save_dataframe_to_sqlite(sanitized_dataframe, destination_file):
     # Create table
     try:
         c.execute('''CREATE TABLE events
-                     (type text, importance text, lat real, long real)''')
+                     (type text, importance text, lat real, long real, date integer, document text, source text, unique(date, source, document, type, importance, lat, long))''')
         print("Created event table")
     except Exception as e:
         print(e)
 
-
+    # Populating the database
     for idx, row in sanitized_dataframe.iterrows():
-        event_dict = {}
-        event_dict["event"] = row[0]
-        event_dict["event_importance"] = row[1]
-        event_dict["event_latitude"] = row[2]
-        event_dict["event_longitude"] = row[3]
-
-        c.execute(f"INSERT INTO events VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '{row[3]}')")
-
+        try:
+            c.execute(f"INSERT INTO events VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '{row[3]}', '{row[4]}', '{row[5]}', '{row[6]}')")
+        except sqlite3.IntegrityError as e:
+            print("Duplicated row!")
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            exit(1)
     # Save (commit) the changes
     conn.commit()
 
-    # We can also close the connection if we are done with it.
-    # Just be sure any changes have been committed or they will be lost.
     conn.close()
 
 
