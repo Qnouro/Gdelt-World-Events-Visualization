@@ -21,6 +21,7 @@
       </div>
 
     </div>
+    <div id="my_dataviz"></div>
 		<script>
 
     const width = window.innerWidth * 0.95,
@@ -28,7 +29,7 @@
           colors = ['#d4eac7', '#c6e3b5', '#b7dda2', '#a9d68f', '#9bcf7d', '#8cc86a', '#7ec157', '#77be4e', '#70ba45', '#65a83e', '#599537', '#4e8230', '#437029', '#385d22', '#2d4a1c', '#223815'];
 
 
-    let svg = d3.select("#svg").append('svg')
+    let svg = d3.select("#my_dataviz").append('svg')
                   .attr('width', width)
                   .attr('height', height)
                   .attr("viewBox", [0, 0, width, height])
@@ -51,6 +52,20 @@
     // Getting the date, for updating reasons
     var date_var = new Date();
     var last_day = date_var.getDate();
+
+
+    // -1- Create a tooltip div that is hidden by default:
+    var tooltip = d3.select("#my_dataviz")
+                    .append("div")
+                    .style("opacity", 1)
+                    .attr("class", "tooltip")
+                    .attr("top", svg.offsetTop + 900 + "px")
+                    .attr("left", svg.offsetLeft + 200 + "px")
+                    .style("background-color", "black")
+                    .style("border-radius", "5px")
+                    .style("padding", "10px")
+                    .style("color", "white")
+
 
     d3.json("world-countries-no-antartica.json", function(values){
 
@@ -128,21 +143,52 @@
 
               var current_day = date_var.getDate();
 
-              // if (last_day != current_day){
-              //     console.log("different")
-              // }
-              //
-              // if (name != "20201005"){
-              //   svg.selectAll('circle')
-              //      .remove()
-              // }
-
-
-
               var selectedOption = d3.select("#selectButton").property("value")
 
 
               var eventType = eventTypeMap[selectedOption]
+
+
+              function handleMouseOver(d, i) {  // Add interactivity
+
+
+                  var event_str = d.event.charAt(0).toUpperCase() + d.event.slice(1).toLowerCase()
+                  event_str = event_str + ":" + d.event_importance[0]
+
+                  tooltip
+                    .transition()
+                    .duration(200)
+                  tooltip
+                    .style("opacity", 1)
+                    .html(event_str)
+                    .style("left", (d3.mouse(this)[0]+30) + "px")
+                    .style("top", (d3.mouse(this)[1]+15) + "px")
+
+
+                  // Use D3 to select element, change color and size
+                  d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .ease(d3.easeLinear)
+                      .attr("r", logScale(d3.max(d.event_importance)) * 1.5 );
+
+              }  // HandleMouseOver
+
+              function handleMouseOut(d, i) {
+                // Use D3 to select element, change color back to normal
+                d3.select(this)
+                .transition()
+                .duration(200)
+                .ease(d3.easeLinear)
+                  .attr("r", logScale(d3.max(d.event_importance)) * 1);
+
+                tooltip
+                  .transition()
+                  .duration(200)
+                tooltip
+                  .style("opacity", 0)
+
+              }  // HandleMouseOut
 
 
 
@@ -177,6 +223,8 @@
                           .style("fill", function(d){
                               return eventColorMap[d.event]
                           })
+                          .on("mouseover", handleMouseOver)
+                          .on("mouseout", handleMouseOut);
 
 
           svg.selectAll('circle')
