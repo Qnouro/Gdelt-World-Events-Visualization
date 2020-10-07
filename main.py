@@ -70,11 +70,14 @@ def transform_store_data(csv_name):
     Creates a sanitized dataframe and stores it.
     @Param csv_name: Name of the csv file to extract information from.
     """
-    txt_name = csv_name.split(".")[0] + csv_name.split(".")[1] + ".txt"
+    root_name = csv_name.split(".")[0] + csv_name.split(".")[1]
+    txt_name = root_name + ".txt"
     df = read_data(csv_name)
     sanitized_dataframe = extract_event_information(df)
     create_data_folder("extracted_data")
-    save_dataframe_to_sqlite(sanitized_dataframe, "./extracted_data/events.db")
+    # save_dataframe_to_sqlite(sanitized_dataframe, f"./extracted_data/{root_name[0:8]}.db")
+    # save_dataframe_to_csv(sanitized_dataframe, f"./extracted_data/{root_name[0:8]}.csv")
+    save_dataframe(sanitized_dataframe, root_name[0:8])
 
 
 def scraping_data(last_url):
