@@ -5,9 +5,11 @@ from data_extraction import *
 from time import sleep
 import datetime
 import re
+import shutil
 
 def main():
     last_url = boot_populating_data()
+    csv_name = ""
     while True:
         try:
             update_status, csv_name, url = scraping_data(last_url)
@@ -78,6 +80,14 @@ def transform_store_data(csv_name):
     # save_dataframe_to_sqlite(sanitized_dataframe, f"./extracted_data/{root_name[0:8]}.db")
     # save_dataframe_to_csv(sanitized_dataframe, f"./extracted_data/{root_name[0:8]}.csv")
     save_dataframe(sanitized_dataframe, root_name[0:8])
+    send_data_to_front(root_name[0:8])
+
+
+def send_data_to_front(root_name):
+    """
+    Sends data to front.
+    """
+    shutil.copyfile(f"./extracted_data/{root_name}.csv", "./viz/src/data.csv")
 
 
 def scraping_data(last_url):
