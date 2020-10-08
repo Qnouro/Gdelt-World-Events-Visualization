@@ -3,6 +3,18 @@
 	<head>
 		<meta charset="utf-8">
 		<style type="text/css" media="screen, print">
+      #tooltip {
+          position: absolute;
+        }
+
+      a {text-decoration: none;}         /* Unvisited link  */
+
+      a:visited {text-decoration: none;} /* Visited link    */
+
+      a:hover {text-decoration: none;}   /* Mouse over link */
+
+      a:active {text-decoration: none;}  /* Selected link   */
+
 
 		</style>
 
@@ -29,12 +41,12 @@
           colors = ['#d4eac7', '#c6e3b5', '#b7dda2', '#a9d68f', '#9bcf7d', '#8cc86a', '#7ec157', '#77be4e', '#70ba45', '#65a83e', '#599537', '#4e8230', '#437029', '#385d22', '#2d4a1c', '#223815'];
 
 
-    let svg = d3.select("#my_dataviz").append('svg')
-                  .attr('width', width)
-                  .attr('height', height)
-                  .attr("viewBox", [0, 0, width, height])
-                  .attr("id", "container");
-
+    var svg = d3.select("#my_dataviz")
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .attr("viewBox", [0, 0, width, height])
+                .attr("id", "container");
 
 
     // Creating the world map
@@ -47,6 +59,7 @@
         .pointRadius(2)
         .projection(projection);
 
+
     const cGroup = svg.append("g");
 
     // Getting the date, for updating reasons
@@ -57,14 +70,21 @@
     // -1- Create a tooltip div that is hidden by default:
     var tooltip = d3.select("#my_dataviz")
                     .append("div")
-                    .style("opacity", 1)
+                    .style("opacity", 0)
                     .attr("class", "tooltip")
-                    .attr("top", svg.offsetTop + 900 + "px")
-                    .attr("left", svg.offsetLeft + 200 + "px")
-                    .style("background-color", "black")
+                    .attr("id", "tooltip")
+                    .attr("position", "absolute")
+                    .attr("top", "100px")
+                    .attr("left", "100px")
+                    .style("background-color", "#2b2e2b")
                     .style("border-radius", "5px")
                     .style("padding", "10px")
                     .style("color", "white")
+
+
+    var click_lock = false,
+        position_lock = [-1, -1],
+        circle_lock = null;
 
 
     d3.json("world-countries-no-antartica.json", function(values){
@@ -120,28 +140,10 @@
                   .domain([1, Math.exp(9)])
                   .range([0.5, 4]);
 
-        var year = date_var.getFullYear().toString(),
-            month = (date_var.getMonth() + 1).toString(),
-            day = date_var.getDate().toString();
-
-        if (day < 10){
-          day = "0" + day;
-        }
-
-        if (month < 10){
-          month = "0" + month;
-        }
-
-        var csv_name = year + month + day;
-
-        var name = "20201005"
-
-        name = "new_format"
 
         function plotData() {
-          d3.csv(`${name}.csv`, function(data){
+          d3.csv(`data.csv`, function(data){
 
-              var current_day = date_var.getDate();
 
               var selectedOption = d3.select("#selectButton").property("value")
 
@@ -150,45 +152,109 @@
 
 
               function handleMouseOver(d, i) {  // Add interactivity
+                  console.log(this)
 
+                  if (click_lock == false){
+                      // var event_str = "People" + d.event.charAt(0).toUpperCase() + d.event.slice(1).toLowerCase()
+                      var event_str = "";
+                      // event_str = event_str + ":" + d.event_importance[0]
 
-                  var event_str = d.event.charAt(0).toUpperCase() + d.event.slice(1).toLowerCase()
-                  event_str = event_str + ":" + d.event_importance[0]
+                      var importance_holder;
 
-                  tooltip
-                    .transition()
-                    .duration(200)
-                  tooltip
-                    .style("opacity", 1)
-                    .html(event_str)
-                    .style("left", (d3.mouse(this)[0]+30) + "px")
-                    .style("top", (d3.mouse(this)[1]+15) + "px")
+                      for (var i = 0; i < d3.min([d.event_importance.length, 3]); i++) {
 
+                        importance_holder = d.event_importance[i]
+                        event_str += importance_holder
 
-                  // Use D3 to select element, change color and size
-                  d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .ease(d3.easeLinear)
-                      .attr("r", logScale(d3.max(d.event_importance)) * 1.5 );
+                        if (importance_holder == 1){
+                            event_str += " person "
+                        } else {
+                            event_str += " people "
+                        }
+                        event_str += d.event.toLowerCase() + "ed<br>"
+                      ;
+                      }
 
+                      if (i == 3){
+                        event_str += "..."
+                      }
+
+                      var pos_x = projection([(d.event_longitude),(d.event_latitude)])[0],
+                          pos_y = projection([(d.event_longitude),(d.event_latitude)])[1];
+
+                      tooltip
+                        .transition()
+                        .duration(200)
+                      tooltip
+                        .style("opacity", 1)
+                        .html(event_str)
+                        .style("left", (pos_x + 30) + "px")
+                        .style("top", (pos_y + 15) + "px")
+
+                      // Use D3 to select element, change color and size
+                      d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .ease(d3.easeLinear)
+                          .attr("r", logScale(d3.max(d.event_importance)) * 1.5 );
+                  }
               }  // HandleMouseOver
 
               function handleMouseOut(d, i) {
                 // Use D3 to select element, change color back to normal
-                d3.select(this)
-                .transition()
-                .duration(200)
-                .ease(d3.easeLinear)
-                  .attr("r", logScale(d3.max(d.event_importance)) * 1);
+                if (click_lock == false){
 
-                tooltip
-                  .transition()
-                  .duration(200)
-                tooltip
-                  .style("opacity", 0)
+                    d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .ease(d3.easeLinear)
+                      .attr("r", logScale(d3.max(d.event_importance)) * 1);
 
+                    tooltip
+                      .transition()
+                      .duration(200)
+                    tooltip
+                      .style("opacity", 0)
+                      .html("")
+                }
               }  // HandleMouseOut
+
+
+              function handleMouseClick(d, i){
+                  if (click_lock == false){
+                      position_lock = projection([(d.event_longitude),(d.event_latitude)])
+                      click_lock = true;
+                      circle_lock = this;
+
+
+                      // Adding data to the tooltip
+                      var event_str = "";
+                      var importance_holder;
+
+                      for (var i = 0; i < d.event_importance.length; i++) {
+
+                        importance_holder = d.event_importance[i]
+                        event_str += importance_holder
+
+                        if (importance_holder == 1){
+                            event_str += " person "
+                        } else {
+                            event_str += " people "
+                        }
+                        event_str += d.event.toLowerCase() + `ed-<a href=\"${d.event_document[i]} \" target="_blank">` + "source</a><br>";
+                      }
+                      tooltip.html(event_str)
+                  } else {
+                      if (position_lock != projection([(d.event_longitude),(d.event_latitude)])){
+                        click_lock = false;
+                      }
+                  }
+
+
+              }
+
+
+              var all_circles = svg.selectAll("circle");
 
 
 
@@ -197,6 +263,7 @@
                           .enter()
                           .filter(function(d){
                             d.event_importance = eval(d.event_importance)  // Casting string representing array to array of ints
+                            d.event_document = eval(d.event_document)
 
                             // Removing absent latitudes and longitudes
                             if (d.event_latitude == "" || d.event_longitude == ""){
@@ -209,6 +276,7 @@
 
                             return false;})
                           .append("circle")
+                          .attr("class", "circle")
                           .attr("r", function(d){
 
                             return (logScale(d3.max(d.event_importance)) / 4);
@@ -224,12 +292,46 @@
                               return eventColorMap[d.event]
                           })
                           .on("mouseover", handleMouseOver)
-                          .on("mouseout", handleMouseOut);
+                          .on("mouseout", handleMouseOut)
+                          .on("click", handleMouseClick);
 
+
+
+          function equalToEventTarget() {
+              return this == d3.event.target;
+          }
+
+          d3.select("body").on("click",function(){
+              var outside = circles.filter(equalToEventTarget).empty();
+              if (outside) {
+
+                if (click_lock) {
+                  click_lock = false;
+                  position_lock = [-1, -1];
+                  tooltip
+                    .transition()
+                    .duration(200)
+                  tooltip
+                    .style("opacity", 0)
+                    .html("")
+
+                  // The ugliest line of code I've written in this file... so far
+                  // circles._groups[0][idx_lock].r.baseVal.value = circles._groups[0][idx_lock].r.baseVal.value / 1.5;
+
+                  d3.select(circle_lock).transition()
+                                        .duration(200)
+                                        .attr("r", circle_lock.r.baseVal.value / 1.5 );
+
+
+                }
+
+              }
+
+          });  // On click outside.
 
           svg.selectAll('circle')
                   .transition()
-                  .duration(1000)
+                  .duration(200)
                   .ease(d3.easeLinear)
                   .attr("r", function(d){
                     return logScale(d3.max(d.event_importance));
@@ -237,7 +339,6 @@
                   .style("opacity", 1);
 
 
-          // name = "20201006"
 
           });  // data
         };  // plotData
@@ -245,7 +346,7 @@
         function removeData() {
           svg.selectAll('circle')
                   .transition()
-                  .duration(1000)
+                  .duration(200)
                   .ease(d3.easeLinear)
                   .attr("r", function(d){
                     return logScale(d.event_importance);
@@ -263,8 +364,6 @@
 
 
         d3.select("#selectButton").on("change", function(d) {
-            console.log("Clicked!")
-            // name = "20201005"
             removeData()
             plotData()
         });
