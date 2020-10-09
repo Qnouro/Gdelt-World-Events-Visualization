@@ -128,7 +128,7 @@ def scraping_data(last_url, config_file):
         print("Extraction completed.")
         last_csv_name = get_last_csv_name(data_location)
 
-        return True, last_csv_name, url
+        return True, last_csv_name.split("\\")[-1], url
 
     return False, None, url
 
