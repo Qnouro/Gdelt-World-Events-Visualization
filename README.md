@@ -117,6 +117,6 @@ Thanks to OthneilDrew for the README template: https://github.com/othneildrew/Be
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=flat-square
-[license-url]: https://github.com/Qnouro/Gdelt-World-Events-Visualization/blob/master/LICENSE.txt
+[license-url]: https://github.com/Qnouro/Gdelt-World-Events-Visualization/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/nour-soubat
