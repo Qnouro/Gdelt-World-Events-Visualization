@@ -78,6 +78,10 @@ python -m http.server 8000
 ```
 The launch of the server allows us to see the visualization by going to localhost:8000 (or localhost:PORT). If opened at the root of the project, the visualization will be find at localhost:8000/viz/src/worldMap.html. Adapt the url regarding where you started the server.
 
+The data-pipeline continuously sends data to the visualization, which automatically updates it, so you do not have to worry about it. The map events keeps adding up, and are renewed on the map at midnight (UTC time).
+
+Potential issue: If the data doesn't refresh, your browser might have saved a cached version of viz/src/data.csv in which case, a removal of a hidden locked file and/or clearing your browser's cache can fix it.
+
 <!-- CONTRIBUTING -->
 ## Contributing
 
