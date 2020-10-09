@@ -1,82 +1,96 @@
 #!/usr/bin/env python
 
-from scraper import create_data_folder
-import pandas as pd
-import numpy as np
-import matplotlib as plt
 import os
 import sys
 import sqlite3
+import pandas as pd
+import numpy as np
+from scraper import create_data_folder, read_config
 from collections import OrderedDict
 
 
 def main():
-    # Dummy example
-    csv_name = "20201005120000.gkg.csv"
-    df = read_data(csv_name)
+    """
+    Mainly for debugging purposes.
+    """
+    config_file = read_config()
+
+    # Pick a file
+    try:
+        csv_name = os.listdir(config_file["downloaded_data_path"])[0]
+    except:
+        print("Could not read csv file.. Please check you've downloaded data beforehand using scraper.py.")
+        exit(1)
+
+    # Read the data
+    df = read_data(csv_name, config_file)
+
+    # Extract information
     sanitized_dataframe = extract_event_information(df)
-    # save_dataframe_to_txt(sanitized_dataframe, f"./extracted_data/{txt_name}")
-    create_data_folder("extracted_data")
-    save_dataframe(sanitized_dataframe, "test")
+
+    # Save extracted information
+    create_data_folder(config_file["extracted_data_path"])
+    save_dataframe(sanitized_dataframe, "test", config_file)
 
 
-def save_dataframe(df, df_root_name):
+def save_dataframe(df, df_root_name, config_file):
     """
     Handles all the saving process into SQL and CSV formats.
     @Param df: dataframe to save.
     @Param df_root_name: name of the file to create without the extension.
+    @Param config_file: Configuration file.
     """
-    save_dataframe_to_sqlite(df, f"./extracted_data/{df_root_name}.db")
-    save_dataframe_to_csv(f"./extracted_data/{df_root_name}.db", f"./extracted_data/{df_root_name}.csv")
+    sqlite_read_path = os.path.join(config_file["extracted_data_path"] , f"{df_root_name}.db")
+    csv_save_path = os.path.join(config_file["extracted_data_path"] , f"{df_root_name}.csv")
+
+    save_dataframe_to_sqlite(df, sqlite_read_path)
+    save_dataframe_to_csv(sqlite_read_path, csv_save_path)
 
 
 def save_dataframe_to_csv(db_path, save_path):
     """
-    Saves the dataframe as csv in the given path. Makes sure to merge the
-    values with those already existing at the same location.
-    @Param df: dataframe to save.
-    @Param db_path: path to the database.
+    Saves the data as csv in the given path by reading the sqlite3 database.
+    Makes sure to merge the values with those already existing at the same
+    location (event, latitude, location).
+    @Param db_path: path to the sqlite3 database.
     @Param save_path: path to the csv file to create.
     """
-    # read the database
+    # Read the SQL database
     db = sqlite3.connect(db_path)
     db_df = pd.read_sql_query("SELECT * FROM events", db)
 
+    # Transforming columns to make them compatible with storing multiple values
     db_df["event_document"] = db_df["event_document"].apply(lambda x: [x])
     db_df["event_date"] = db_df["event_date"].apply(lambda x: [x])
     db_df["event_importance"] = db_df["event_importance"].apply(lambda x: [x])
     db_df["event_source_name"] = db_df["event_source_name"].apply(lambda x: [x])
 
-    # read csv file
-    # existing_df = read_data(save_path, add_root_dir=False)
-    #
-    # df = pd.concat([existing_df, df], sort=False)  # Concatenate with old csv
-    #
 
     # merge lines with identical position and event.
     db_df = db_df.groupby(["event", "event_latitude", "event_longitude"], as_index=False).aggregate({'event_document':np.sum, "event_importance": np.sum, "event_date": np.sum, "event_source_name": np.sum})
 
-    # # Drop the rows having the same event, position, importance, and EVENT_DOCUMENT
-    # df.drop_duplicates(subset=["event", "event_latitude", "event_longitude", "event_importance", "event_document", "event_source_name"], keep="last")
-
+    # Storing the information
     db_df.to_csv(save_path, mode='w', index=False)
 
+    # Closing the database connexion
     db.commit()
     db.close()
 
 
-def read_data(csv_name, add_root_dir=True):
+def read_data(csv_name, config_file, add_root_dir=True):
     """
     Reads the csv file given and returns the associated dataframe.
     @Param csv_name: Name of the csv file to read.
+    @Param config_file: Configuration file.
     @Return: Dataframe containing the csv information.
     """
     print("Reading the csv file...")
 
     csv = csv_name
     if add_root_dir:
-        data_dir = "./data/"
-        csv = data_dir + csv_name
+        data_dir = config_file["downloaded_data_path"]
+        csv = os.path.join(data_dir, csv_name)
+
     pd.set_option('display.float_format', lambda x: '%.3f' % x)  # Avoid scientific notation
     dataframe = pd.read_csv(csv,
                             delimiter = "\t",
@@ -84,6 +98,7 @@ def read_data(csv_name, add_root_dir=True):
                                    "V2EnhancedPersons", "V1organizations", "V2EnhancedOrganizations", "V1_5tone", "V2_1EnhancedDates", "V2GCam", "V2_1SharingImage", "V2_1RelatedImages", "V2_1SocialImageEmbeds", "V2_1SocialVideoEmbeds",
                                    "V2_1Quotations", "V2_1AllNames", "V2_1Amounts", "V2_1TranslationInfo", "V2ExtrasXML"],
                             encoding="ISO-8859-1")
+
     return dataframe
 
 
@@ -102,12 +117,12 @@ def extract_event_information(dataframe):
     main_dataframe = dataframe[["event_date", "V1Counts_10", "source_name", "document_id"]].copy()
     main_series = main_dataframe.dropna(0)
 
-
     for idx, row in main_series.iterrows():
         event_date = row[0]
         event_source_name = row[2]
         event_document = row[3]
         event_details = row[1].split("#")
+
         event_dict = OrderedDict()
         event_dict["event_date"] = event_date
         event_dict["event_source_name"] = event_source_name
@@ -118,7 +133,6 @@ def extract_event_information(dataframe):
         event_dict["event_longitude"] = event_details[8]
 
         sanitized_dataframe = sanitized_dataframe.append(event_dict, ignore_index=True)
-
 
     return sanitized_dataframe
 

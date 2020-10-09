@@ -1,30 +1,33 @@
 #!/usr/bin/python3
 
-import requests
-import zipfile
 import os
-import pathlib
 import sys
-import pickle
+import requests
 import urllib
+import json
+import zipfile
+import pathlib
 from pathlib import Path
 
 
 def main():
+    """
+    Mainly for debugging purposes.
+    """
     last_url = ""
+    config_file = read_config()
     while True:
         try:
             url = get_latest_url()
-
             if url != last_url:  # update detected
                 print(f"Update detected!")
+
                 last_url = url
-                current_folder = str(pathlib.Path(__file__).parent.absolute())
-                data_location = current_folder + "/data/"
+                data_location = config_file["downloaded_data_path"]
 
                 create_data_folder(data_location)
-
                 download_file(url, data_location)
+
                 print("Extraction completed.")
         except Exception as e:
             print(f"Error! {e}")
@@ -55,19 +58,18 @@ def download_file(url, data_location):
     print(f"Downloading {url}..")
     req = requests.get(url)
 
-
     # Writing the zip file to disk
     zipfile_location = data_location + "dummy.csv.zip"
     with open(zipfile_location, "wb") as my_zipfile:
         my_zipfile.write(req.content)
 
-    print("Extracting zip file..")
     # Extracting the zip to get a csv file
+    print("Extracting zip file..")
     with zipfile.ZipFile(zipfile_location, 'r') as zip_ref:
         zip_ref.extractall(data_location)
 
-    print("Removing zip file..")
     # Removing the zip file
+    print("Removing zip file..")
     os.remove(zipfile_location)
 
 
@@ -82,6 +84,7 @@ def create_url_by_date(file_date):
     url_date = file_date
     url_tail = ".gkg.csv.zip"
     url = url_header + url_date + url_tail
+
     return url
 
 
@@ -100,6 +103,23 @@ def get_last_csv_name(data_location):
     """
     files = sorted(Path(data_location).iterdir(), key=os.path.getctime)
     return str(files[-1]).split("/")[-1]
+
+
+def read_config():
+    """
+    Reads the config.json file and returns the dictionary with absolute paths.
+    @Returns: dict of the config file.
+    """
+
+    with open("config.json", "r", encoding="utf-8") as config_file:
+        data = json.load(config_file)
+
+    # making the paths absolute
+    current_folder = str(pathlib.Path(__file__).parent.absolute())
+    for element in data.keys():
+        data[element] = os.path.join(current_folder, data[element])
+
+    return data
 
 
 if __name__ == "__main__":
