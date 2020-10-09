@@ -3,9 +3,36 @@
 	<head>
 		<meta charset="utf-8">
 		<style type="text/css" media="screen, print">
+
       #tooltip {
           position: absolute;
         }
+
+			#selectButton{
+				display: block;
+				margin: 0 auto;
+				height: 100%;
+			}
+
+      #selectButton:before{
+          content: "World Event Type";
+					display: inline-block;
+      }
+
+			.svg-container {
+			  display: inline-block;
+			  position: relative;
+			  width: 100%;
+			  vertical-align: top;
+			  overflow: hidden;
+			}
+			.svg-content-responsive {
+			  display: inline-block;
+			  position: absolute;
+			  top: 10px;
+			  left: 0;
+			}
+
 
       a {text-decoration: none;}         /* Unvisited link  */
 
@@ -14,7 +41,6 @@
       a:hover {text-decoration: none;}   /* Mouse over link */
 
       a:active {text-decoration: none;}  /* Selected link   */
-
 
 		</style>
 
@@ -26,7 +52,8 @@
 		<script src="../d3.js"></script>
 		<script src="//d3js.org/d3.v4.min.js"></script>
     <div>
-      <select id="selectButton", style="display: block;margin: 0 auto;"></select>
+      <h1 style="text-align: center">World Events Visualization Map</h1>
+      <select id="selectButton" class="selectButton"></select>
 
       <div id="svg">
 
@@ -37,15 +64,17 @@
 		<script>
 
     const width = window.innerWidth * 0.95,
-          height = window.innerHeight * 0.89,
+          height = window.innerHeight * 0.79,
           colors = ['#d4eac7', '#c6e3b5', '#b7dda2', '#a9d68f', '#9bcf7d', '#8cc86a', '#7ec157', '#77be4e', '#70ba45', '#65a83e', '#599537', '#4e8230', '#437029', '#385d22', '#2d4a1c', '#223815'];
 
 
     var svg = d3.select("#my_dataviz")
                 .append('svg')
+								.classed("svg-container", true)
+								.attr("viewBox", [0, 0, width, height])
+								.attr("preserveAspectRatio", "xMinYMin meet")
                 .attr('width', width)
                 .attr('height', height)
-                .attr("viewBox", [0, 0, width, height])
                 .attr("id", "container");
 
 
