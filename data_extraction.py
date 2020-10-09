@@ -150,7 +150,7 @@ def save_dataframe_to_sqlite(sanitized_dataframe, destination_file):
     # Create table
     try:
         c.execute('''CREATE TABLE events
-                     (event text, event_importance text, event_latitude real, event_longitude real, event_date integer, event_document text, event_source_name text, unique(event_source_name, event_document, event, event_importance, event_latitude, event_longitude))''')
+                     (event text, event_importance text, event_latitude real, event_longitude real, event_date integer, event_document text, event_source_name text, unique(event_date, event, event_importance, event_latitude, event_longitude))''')
         print("Created event table")
     except Exception as e:
         print(e)
@@ -158,14 +158,30 @@ def save_dataframe_to_sqlite(sanitized_dataframe, destination_file):
     # Populating the database
     for idx, row in sanitized_dataframe.iterrows():
         try:
-            c.execute(f"INSERT INTO events VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '{row[3]}', '{row[4]}', '{row[5]}', '{row[6]}')")
-        except sqlite3.IntegrityError as e:
-            # Duplicated row
-            pass
-        except:
-            print("omigod")
-            print("Unexpected error:", sys.exc_info()[0])
+            # Before adding, we check if the element has been reported in the same day.
+            if row[2]=="":
+                row[2]=0
+
+            if row[3]=="":
+                row[3]=0
+
+            c.execute(f"SELECT event, event_importance, event_latitude, event_longitude FROM events WHERE event='{row[0]}' AND event_importance={int(row[1])} AND event_latitude={float(row[2])} AND event_longitude={float(row[3])}")
+            result = c.fetchall()
+            if len(result) == 0:
+                try:
+                    c.execute(f"INSERT INTO events VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '{row[3]}', '{row[4]}', '{row[5]}', '{row[6]}')")
+                except sqlite3.IntegrityError as e:
+                    # Duplicated row
+                    pass
+                except:
+                    print("Unexpected error:", sys.exc_info()[0])
+                    exit(1)
+
+        except Exception as e:
+            print("Unexpected error:", sys.exc_info()[0], e)
             exit(1)
+
+
     # Save (commit) the changes
     conn.commit()
 
