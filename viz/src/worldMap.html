@@ -2,21 +2,20 @@
 <html>
 	<head>
 		<meta charset="utf-8">
+
 		<style type="text/css" media="screen, print">
 
       #tooltip {
           position: absolute;
         }
 
-			#selectButton{
-				display: block;
-				margin: 0 auto;
-				height: 100%;
+			h4{
+				text-align: center;
 			}
 
-      #selectButton:before{
-          content: "World Event Type";
-					display: inline-block;
+      h4::before{
+          content: "World Event Type: ";
+					color: black;
       }
 
 			.svg-container {
@@ -26,6 +25,7 @@
 			  vertical-align: top;
 			  overflow: hidden;
 			}
+
 			.svg-content-responsive {
 			  display: inline-block;
 			  position: absolute;
@@ -33,40 +33,38 @@
 			  left: 0;
 			}
 
+			body {
+			  background-color: #afb9ba;
+			}
 
-      a {text-decoration: none;}         /* Unvisited link  */
-
-      a:visited {text-decoration: none;} /* Visited link    */
-
-      a:hover {text-decoration: none;}   /* Mouse over link */
-
-      a:active {text-decoration: none;}  /* Selected link   */
+      a {text-decoration: none;}
+      a:visited {text-decoration: none;}
+      a:hover {text-decoration: none;}
+      a:active {text-decoration: none;}
 
 		</style>
 
 		<title>World Events visualization</title>
-	</head>
-	<body>
-		<h2 id="h2" align="center"></h2>
 
-		<script src="../d3.js"></script>
+	</head>
+
+	<body>
 		<script src="//d3js.org/d3.v4.min.js"></script>
+
     <div>
       <h1 style="text-align: center">World Events Visualization Map</h1>
-      <select id="selectButton" class="selectButton"></select>
-
-      <div id="svg">
-
-      </div>
-
+			<h4  class="selectButton"><select id="selectButton"></select></h4>
+      <div id="svg"></div>
     </div>
+
     <div id="my_dataviz"></div>
+
+
+		<!-- D3.JS SCRIPT  -->
 		<script>
 
     const width = window.innerWidth * 0.95,
-          height = window.innerHeight * 0.79,
-          colors = ['#d4eac7', '#c6e3b5', '#b7dda2', '#a9d68f', '#9bcf7d', '#8cc86a', '#7ec157', '#77be4e', '#70ba45', '#65a83e', '#599537', '#4e8230', '#437029', '#385d22', '#2d4a1c', '#223815'];
-
+          height = window.innerHeight * 0.75;
 
     var svg = d3.select("#my_dataviz")
                 .append('svg')
@@ -78,25 +76,14 @@
                 .attr("id", "container");
 
 
-    // Creating the world map
 
-    const projection = d3.geoNaturalEarth1()
-    .scale(1)
-    .translate([0, 0]);
-
-    const path = d3.geoPath()
-        .pointRadius(2)
-        .projection(projection);
 
 
     const cGroup = svg.append("g");
 
-    // Getting the date, for updating reasons
-    var date_var = new Date();
-    var last_day = date_var.getDate();
 
-
-    // -1- Create a tooltip div that is hidden by default:
+    // Create a tooltip div that is hidden by default
+		// The tooltip displays infos regarding the circle's content
     var tooltip = d3.select("#my_dataviz")
                     .append("div")
                     .style("opacity", 0)
@@ -116,7 +103,17 @@
         circle_lock = null;
 
 
+		// Creating the world map
     d3.json("world-countries-no-antartica.json", function(values){
+
+				// Declaring important variables
+				const projection = d3.geoNaturalEarth1()
+				.scale(1)
+				.translate([0, 0]);
+
+				const path = d3.geoPath()
+						.pointRadius(2)
+						.projection(projection);
 
         const geojson = values;
 
@@ -124,12 +121,11 @@
             s = 1 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height),
             t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
 
-
         projection
             .scale(s)
             .translate(t);
 
-
+				// Drawing the map
         cGroup.selectAll("path")
             .data(geojson.features)
             .enter()
@@ -139,18 +135,11 @@
             .attr("class", "country");
 
 
-        // Handling data
+        // Handling world data
 
 
+				// Mapping event type to colors and better wording display.
         var allGroup = ["Killed", "Protests", "Affects"]
-
-        d3.select("#selectButton")
-          .selectAll('myOptions')
-          .data(allGroup)
-          .enter()
-          .append('option')
-          .text(function (d) { return d; }) // text showed in the menu
-          .attr("value", function (d) { return d; }) // corresponding value returned by the button
 
         let eventTypeMap = new Map()
 
@@ -164,145 +153,185 @@
         eventColorMap["PROTEST"] = "#F4C724"
         eventColorMap["AFFECT"] = "#26ae60"
 
+				// Dropdown menu to select the event type
+        d3.select("#selectButton")
+          .selectAll('myOptions')
+          .data(allGroup)
+          .enter()
+          .append('option')
+          .text(function (d) { return d; }) // text showed in the menu
+          .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
+				// Declaring logscale for circle radius
         var logScale = d3.scaleLog()
                   .base(Math.E)
                   .domain([1, Math.exp(9)])
                   .range([0.5, 4]);
 
+				// Declaring functions regarding mouse events
+        function handleMouseOver(d, i) {
+            if (click_lock == false){
+                var event_str = "";
+                var importance_holder;
+
+								// Format text concerning the circle's information
+                for (var i = 0; i < d3.min([d.event_importance.length, 3]); i++) {
+                  importance_holder = d.event_importance[i]
+                  event_str += importance_holder
+
+                  if (importance_holder == 1){
+                      event_str += " person "
+                  } else {
+                      event_str += " people "
+                  }
+                  event_str += d.event.toLowerCase() + "ed<br>";
+                }
+
+                if (i == 3 && d.event_importance.length > 3){
+                  event_str += "..."
+                }
+
+                var pos_x = projection([(d.event_longitude),(d.event_latitude)])[0],
+                    pos_y = projection([(d.event_longitude),(d.event_latitude)])[1];
+
+								// Showing the tooltip with the circle's information
+                tooltip
+                  .transition()
+                  .duration(200)
+                tooltip
+                  .style("opacity", 1)
+                  .html(event_str)
+                  .style("left", (pos_x + 30) + "px")
+                  .style("top", (pos_y + 15) + "px")
+
+                // Make the circle bigger & fill with orange to highlight it
+                d3.select(this)
+                  .transition()
+                  .duration(200)
+                  .ease(d3.easeLinear)
+                    .attr("r", logScale(d3.max(d.event_importance)) * 1.5 )
+										.style("fill", "#ff9500");
+            }
+        }  // HandleMouseOver
+
+
+        function handleMouseOut(d, i) {
+					// We only do something if no circle is currently locked
+          if (click_lock == false){
+              d3.select(this)
+              .transition()
+              .duration(200)
+              .ease(d3.easeLinear)
+                .attr("r", logScale(d3.max(d.event_importance)) * 1)
+								.style("fill", function(d){
+										return eventColorMap[d.event]
+								});
+
+              tooltip
+                .transition()
+                .duration(200)
+              tooltip
+                .style("opacity", 0)
+                .html("")
+          }
+        }  // HandleMouseOut
+
+
+        function handleMouseClick(d, i){
+					// We only do something if no circle is currently locked
+            if (click_lock == false){
+
+								// We lock the circle
+                position_lock = projection([(d.event_longitude),(d.event_latitude)])
+                click_lock = true;
+                circle_lock = this;
+
+
+                // Adding more information to the tooltip
+                var event_str = "";
+                var importance_holder;
+
+                for (var i = 0; i < d.event_importance.length; i++) {
+
+                  importance_holder = d.event_importance[i]
+                  event_str += importance_holder
+
+                  if (importance_holder == 1){
+                      event_str += " person "
+                  } else {
+                      event_str += " people "
+                  }
+                  event_str += d.event.toLowerCase() + `ed-<a href=\"${d.event_document[i]} \" target="_blank">` + "source</a><br>";
+                }
+                tooltip.html(event_str)
+            } else {
+								// We are here if we click another circle. We remove the lock.
+                if (position_lock != projection([(d.event_longitude),(d.event_latitude)])){
+                  click_lock = false;
+                }
+            }
+        }  // handleMouseClick
+
+
+
 
         function plotData() {
           d3.csv("data.csv", function(data){
 
-
+							// Selecting the dropdown
               var selectedOption = d3.select("#selectButton").property("value")
-
-
               var eventType = eventTypeMap[selectedOption]
 
+							// Handling clicks outside circles
+							function equalToEventTarget() {
+									return this == d3.event.target;
+							}
 
-              function handleMouseOver(d, i) {  // Add interactivity
+							d3.select("body").on("click",function(){
+									var outside = circles.filter(equalToEventTarget).empty();
 
-                  if (click_lock == false){
-                      // var event_str = "People" + d.event.charAt(0).toUpperCase() + d.event.slice(1).toLowerCase()
-                      var event_str = "";
-                      // event_str = event_str + ":" + d.event_importance[0]
+									if (outside) {
+											if (click_lock) {
+													click_lock = false;
+													position_lock = [-1, -1];
 
-                      var importance_holder;
+													// hiding the tooltip
+													tooltip
+														.transition()
+														.duration(200)
+													tooltip
+														.style("opacity", 0)
+														.html("")
 
-
-                      for (var i = 0; i < d3.min([d.event_importance.length, 3]); i++) {
-
-                        importance_holder = d.event_importance[i]
-                        event_str += importance_holder
-
-                        if (importance_holder == 1){
-                            event_str += " person "
-                        } else {
-                            event_str += " people "
-                        }
-                        event_str += d.event.toLowerCase() + "ed<br>"
-                      ;
-                      }
-
-                      if (i == 3 && d.event_importance.length > 3){
-                        event_str += "..."
-                      }
-
-                      var pos_x = projection([(d.event_longitude),(d.event_latitude)])[0],
-                          pos_y = projection([(d.event_longitude),(d.event_latitude)])[1];
-
-                      tooltip
-                        .transition()
-                        .duration(200)
-                      tooltip
-                        .style("opacity", 1)
-                        .html(event_str)
-                        .style("left", (pos_x + 30) + "px")
-                        .style("top", (pos_y + 15) + "px")
-
-                      // Use D3 to select element, change color and size
-                      d3.select(this)
-                        .transition()
-                        .duration(200)
-                        .ease(d3.easeLinear)
-                          .attr("r", logScale(d3.max(d.event_importance)) * 1.5 );
-                  }
-              }  // HandleMouseOver
-
-              function handleMouseOut(d, i) {
-                // Use D3 to select element, change color back to normal
-                if (click_lock == false){
-
-                    d3.select(this)
-                    .transition()
-                    .duration(200)
-                    .ease(d3.easeLinear)
-                      .attr("r", logScale(d3.max(d.event_importance)) * 1);
-
-                    tooltip
-                      .transition()
-                      .duration(200)
-                    tooltip
-                      .style("opacity", 0)
-                      .html("")
-                }
-              }  // HandleMouseOut
+											d3.select(circle_lock).transition()
+																						.duration(200)
+																						.attr("r", circle_lock.r.baseVal.value / 1.5 )
+																						.style("fill", eventColorMap[eventType]);
+										}
+									}
+							});  // On click outside.
 
 
-              function handleMouseClick(d, i){
-                  if (click_lock == false){
-                      position_lock = projection([(d.event_longitude),(d.event_latitude)])
-                      click_lock = true;
-                      circle_lock = this;
-
-
-                      // Adding data to the tooltip
-                      var event_str = "";
-                      var importance_holder;
-
-                      for (var i = 0; i < d.event_importance.length; i++) {
-
-                        importance_holder = d.event_importance[i]
-                        event_str += importance_holder
-
-                        if (importance_holder == 1){
-                            event_str += " person "
-                        } else {
-                            event_str += " people "
-                        }
-                        event_str += d.event.toLowerCase() + `ed-<a href=\"${d.event_document[i]} \" target="_blank">` + "source</a><br>";
-                      }
-                      tooltip.html(event_str)
-                  } else {
-                      if (position_lock != projection([(d.event_longitude),(d.event_latitude)])){
-                        click_lock = false;
-                      }
-                  }
-
-
-              }
-
-
-              var all_circles = svg.selectAll("circle");
-
-
-
+							// Drawing the circles
               var circles = svg.selectAll("circles")
                           .data(data)
                           .enter()
                           .filter(function(d){
-                            d.event_importance = eval(d.event_importance)  // Casting string representing array to array of str
+													  // Casting string representing array to array of str
+                            d.event_importance = eval(d.event_importance)
                             d.event_document = eval(d.event_document)
 
-                            d.event_importance = d.event_importance.map(function (x) {  // Casting the str to ints
-                                                                  return parseInt(x, 10);
-                                                                });
+														// Casting the strings inside the arrays to ints
+                            d.event_importance = d.event_importance.map(function (x) {
+		                                                                  return parseInt(x, 10);
+		                                                                });
 
                             // Removing absent latitudes and longitudes
                             if (d.event_latitude == "" || d.event_longitude == ""){
                               return false;
                             }
 
+														// Filtering by the wanted event type
                             if (d.event == eventTypeMap[selectedOption]){
                               if (d.event_importance.length == 3 && d.event_importance[0] == 3){
                                 console.log(d)
@@ -310,7 +339,8 @@
                               return true;
                             }
 
-                            return false;})
+                            return false;
+													})
                           .append("circle")
                           .attr("class", "circle")
                           .attr("r", function(d){
@@ -333,52 +363,19 @@
                           .on("click", handleMouseClick);
 
 
-
-          function equalToEventTarget() {
-              return this == d3.event.target;
-          }
-
-          d3.select("body").on("click",function(){
-              var outside = circles.filter(equalToEventTarget).empty();
-              if (outside) {
-
-                if (click_lock) {
-                  click_lock = false;
-                  position_lock = [-1, -1];
-                  tooltip
-                    .transition()
-                    .duration(200)
-                  tooltip
-                    .style("opacity", 0)
-                    .html("")
-
-                  // The ugliest line of code I've written in this file... so far
-                  // circles._groups[0][idx_lock].r.baseVal.value = circles._groups[0][idx_lock].r.baseVal.value / 1.5;
-
-                  d3.select(circle_lock).transition()
-                                        .duration(200)
-                                        .attr("r", circle_lock.r.baseVal.value / 1.5 );
-
-
-                }
-
-              }
-
-          });  // On click outside.
-
+					// Animation for circles apparition by making them bigger.
           svg.selectAll('circle')
                   .transition()
-                  .duration(200)
-                  .ease(d3.easeLinear)
+                  .duration(1000)
+                  .ease(d3.easeElastic)
                   .attr("r", function(d){
                     return logScale(d3.max(d.event_importance));
                   })
                   .style("opacity", 1);
 
-
-
           });  // data
         };  // plotData
+
 
         function removeData() {
           svg.selectAll('circle')
@@ -393,11 +390,13 @@
              .remove()
         };  // removeData
 
+
+
         plotData()
-        var inter = setInterval(function() {
+
+				var inter = setInterval(function() {
                     plotData();
                   }, 60000);
-
 
 
         d3.select("#selectButton").on("change", function(d) {
