@@ -26,7 +26,7 @@
 		<script src="../d3.js"></script>
 		<script src="//d3js.org/d3.v4.min.js"></script>
     <div>
-      <select id="selectButton"></select>
+      <select id="selectButton", style="display: block;margin: 0 auto;"></select>
 
       <div id="svg">
 
@@ -37,7 +37,7 @@
 		<script>
 
     const width = window.innerWidth * 0.95,
-          height = window.innerHeight * 0.90,
+          height = window.innerHeight * 0.89,
           colors = ['#d4eac7', '#c6e3b5', '#b7dda2', '#a9d68f', '#9bcf7d', '#8cc86a', '#7ec157', '#77be4e', '#70ba45', '#65a83e', '#599537', '#4e8230', '#437029', '#385d22', '#2d4a1c', '#223815'];
 
 
@@ -142,7 +142,7 @@
 
 
         function plotData() {
-          d3.csv(`data.csv`, function(data){
+          d3.csv("data.csv", function(data){
 
 
               var selectedOption = d3.select("#selectButton").property("value")
@@ -152,7 +152,6 @@
 
 
               function handleMouseOver(d, i) {  // Add interactivity
-                  console.log(this)
 
                   if (click_lock == false){
                       // var event_str = "People" + d.event.charAt(0).toUpperCase() + d.event.slice(1).toLowerCase()
@@ -160,6 +159,7 @@
                       // event_str = event_str + ":" + d.event_importance[0]
 
                       var importance_holder;
+
 
                       for (var i = 0; i < d3.min([d.event_importance.length, 3]); i++) {
 
@@ -175,7 +175,7 @@
                       ;
                       }
 
-                      if (i == 3){
+                      if (i == 3 && d.event_importance.length > 3){
                         event_str += "..."
                       }
 
@@ -262,8 +262,12 @@
                           .data(data)
                           .enter()
                           .filter(function(d){
-                            d.event_importance = eval(d.event_importance)  // Casting string representing array to array of ints
+                            d.event_importance = eval(d.event_importance)  // Casting string representing array to array of str
                             d.event_document = eval(d.event_document)
+
+                            d.event_importance = d.event_importance.map(function (x) {  // Casting the str to ints
+                                                                  return parseInt(x, 10);
+                                                                });
 
                             // Removing absent latitudes and longitudes
                             if (d.event_latitude == "" || d.event_longitude == ""){
@@ -271,6 +275,9 @@
                             }
 
                             if (d.event == eventTypeMap[selectedOption]){
+                              if (d.event_importance.length == 3 && d.event_importance[0] == 3){
+                                console.log(d)
+                              }
                               return true;
                             }
 
@@ -278,7 +285,6 @@
                           .append("circle")
                           .attr("class", "circle")
                           .attr("r", function(d){
-
                             return (logScale(d3.max(d.event_importance)) / 4);
                           })
                           .attr("transform", function(d) {
@@ -291,6 +297,8 @@
                           .style("fill", function(d){
                               return eventColorMap[d.event]
                           })
+                          .style("stroke", "white")
+                          .style("stroke-width", 0.3)
                           .on("mouseover", handleMouseOver)
                           .on("mouseout", handleMouseOut)
                           .on("click", handleMouseClick);
@@ -359,7 +367,7 @@
         plotData()
         var inter = setInterval(function() {
                     plotData();
-                  }, 5000);
+                  }, 60000);
 
 
 
