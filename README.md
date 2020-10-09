@@ -27,6 +27,8 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
+[![World Events Map][Visualization-example]](world_map.png)
+
 The following project aims at visualizing the data uploaded by the Gdelt project. Every 15 minutes, a CSV file is uploaded containing world news events. We create a data pipeline to continuously extract the data, transform it and store it (ETL approach) using python and sql.
 
 The project aims at visualization some world events based on the Gdelt project: https://www.gdeltproject.org/.
