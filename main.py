@@ -126,9 +126,9 @@ def scraping_data(last_url, config_file):
         create_data_folder(data_location)
         download_file(url, data_location)
         print("Extraction completed.")
-        last_csv_name = get_last_csv_name(data_location)
+        last_csv_name = get_last_csv_name(data_location).split("\\")[-1]
 
-        return True, last_csv_name.split("\\")[-1], url
+        return True, last_csv_name, url
 
     return False, None, url
 
@@ -151,7 +151,7 @@ def scraping_data_by_date(csv_date, config_file):
 
     print("Extraction completed.")
 
-    last_csv_name = get_last_csv_name(data_location)
+    last_csv_name = get_last_csv_name(data_location).split("\\")[-1]
 
     return True, last_csv_name, url
 
