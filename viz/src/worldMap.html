@@ -139,19 +139,30 @@
 
 
 				// Mapping event type to colors and better wording display.
-        var allGroup = ["Killed", "Protests", "Affects"]
+        var allGroup = ["Affects", "Arrest", "Evacuations", "Kidnaped", "Killed", "Protests", "Seizes", "Wounded"]
 
         let eventTypeMap = new Map()
 
+				eventTypeMap["Affects"] = "AFFECT"
+				eventTypeMap["Arrest"] = "ARREST"
+				eventTypeMap["Evacuations"] = "EVACUATION"
+				eventTypeMap["Kidnaped"] = "KIDNAP"
         eventTypeMap["Killed"] = "KILL"
         eventTypeMap["Protests"] = "PROTEST"
-        eventTypeMap["Affects"] = "AFFECT"
+				eventTypeMap["Seizes"] = "SEIZE"
+				eventTypeMap["Wounded"] = "WOUND"
 
         let eventColorMap = new Map()
 
+				eventColorMap["AFFECT"] = "#26ae60"
+				eventColorMap["ARREST"] = "#0ccc9c"
+				eventColorMap["EVACUATION"] = "#30e645"
+				eventColorMap["KIDNAP"] = "#192ebd"
         eventColorMap["KILL"] = "#E71C23"
-        eventColorMap["PROTEST"] = "#F4C724"
-        eventColorMap["AFFECT"] = "#26ae60"
+				eventColorMap["PROTEST"] = "#F4C724"
+				eventColorMap["SEIZE"] = "#b3621b"
+				eventColorMap["WOUND"] = "#9f0fbf"
+
 
 				// Dropdown menu to select the event type
         d3.select("#selectButton")
@@ -166,7 +177,7 @@
         var logScale = d3.scaleLog()
                   .base(Math.E)
                   .domain([1, Math.exp(9)])
-                  .range([0.5, 4]);
+                  .range([1, 4]);
 
 				// Declaring functions regarding mouse events
         function handleMouseOver(d, i) {
@@ -273,8 +284,6 @@
         }  // handleMouseClick
 
 
-
-
         function plotData() {
           d3.csv("data.csv", function(data){
 
@@ -325,6 +334,10 @@
                             d.event_importance = d.event_importance.map(function (x) {
 		                                                                  return parseInt(x, 10);
 		                                                                });
+
+														// Adapting the domain to the data
+														logScale.domain([d3.min(d.event_importance), d3.max(d.event_importance)])
+
 
                             // Removing absent latitudes and longitudes
                             if (d.event_latitude == "" || d.event_longitude == ""){
@@ -378,14 +391,7 @@
 
 
         function removeData() {
-          svg.selectAll('circle')
-                  .transition()
-                  .duration(200)
-                  .ease(d3.easeLinear)
-                  .attr("r", function(d){
-                    return logScale(d.event_importance);
-                  })
-                  .style("opacity", 0.0);
+
           svg.selectAll('circle')
              .remove()
         };  // removeData
