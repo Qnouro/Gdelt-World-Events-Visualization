@@ -177,7 +177,7 @@
         var logScale = d3.scaleLog()
                   .base(Math.E)
                   .domain([1, Math.exp(9)])
-                  .range([1, 4]);
+                  .range([3, 6]);
 
 				// Declaring functions regarding mouse events
         function handleMouseOver(d, i) {
@@ -287,6 +287,7 @@
         function plotData() {
           d3.csv("data.csv", function(data){
 
+
 							// Selecting the dropdown
               var selectedOption = d3.select("#selectButton").property("value")
               var eventType = eventTypeMap[selectedOption]
@@ -321,6 +322,22 @@
 							});  // On click outside.
 
 
+							// Adapting the scale to our data
+							var min_importance = 90000000,
+									max_importance = 0;
+
+							var importance_array = [];
+
+							for (var i = 0; i < data.length; i++){
+								var event_importance = eval(data[i].event_importance).map(function (x) {
+																																				return parseInt(x, 10);
+																																			});;
+								importance_array = importance_array.concat(event_importance)
+							}
+
+							logScale.domain([d3.min(importance_array), d3.max(importance_array)])
+
+
 							// Drawing the circles
               var circles = svg.selectAll("circles")
                           .data(data)
@@ -331,12 +348,7 @@
                             d.event_document = eval(d.event_document)
 
 														// Casting the strings inside the arrays to ints
-                            d.event_importance = d.event_importance.map(function (x) {
-		                                                                  return parseInt(x, 10);
-		                                                                });
-
-														// Adapting the domain to the data
-														logScale.domain([d3.min(d.event_importance), d3.max(d.event_importance)])
+                            d.event_importance = d.event_importance
 
 
                             // Removing absent latitudes and longitudes
