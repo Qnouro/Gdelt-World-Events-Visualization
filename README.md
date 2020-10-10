@@ -60,7 +60,7 @@ The project realies heavily on python3 which is hence needed.
 1. Clone the repo
 2. Install the requirements
 ```sh
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 <!-- USAGE EXAMPLES -->
